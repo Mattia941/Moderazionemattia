@@ -27,7 +27,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
         getServer().getPluginManager().registerEvents(this, this);
         Objects.requireNonNull(getCommand("ban")).setExecutor(this);
         Objects.requireNonNull(getCommand("dupeip")).setExecutor(this);
-        getLogger().info("NoMercyMC attivato con successo!");
+        getLogger().info("NoMercyMC attivato con successo su Purpur 1.21.1!");
     }
 
     @EventHandler
@@ -43,9 +43,12 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
     }
 
     @Override
+    @SuppressWarnings("deprecation")
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
-        // COMANDO /BAN
+        // ==========================================
+        // COMANDO /BAN (PERMANENTE O TEMPORANEO)
+        // ==========================================
         if (cmd.getName().equalsIgnoreCase("ban")) {
             if (!sender.hasPermission("nomercy.admin")) {
                 sender.sendMessage(color("&cNon hai il permesso per eseguire questo comando."));
@@ -83,12 +86,8 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             String reason = reasonBuilder.toString().trim();
             String executor = sender.getName();
 
-            Bukkit.getBanList(BanList.Type.PROFILE).addBan(
-                    Bukkit.createProfile(targetName),
-                    reason,
-                    expiration,
-                    executor
-            );
+            // BAN UNIVERSALE COMPATIBILE PAPER/PURPUR 1.21
+            Bukkit.getBanList(BanList.Type.NAME).addBan(targetName, reason, expiration, executor);
 
             Component banBroadcast = color(
                 "&c--------------------------------------------------\n" +
@@ -119,7 +118,9 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             return true;
         }
 
+        // ==========================================
         // COMANDO /DUPEIP
+        // ==========================================
         if (cmd.getName().equalsIgnoreCase("dupeip")) {
             if (!sender.hasPermission("nomercy.staff")) {
                 sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
@@ -144,7 +145,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             sender.sendMessage(color("&c&lNOMERCYMC &8» &fAccount collegati a &e" + target.getName() + "&f:"));
 
             for (String acc : accounts) {
-                boolean isBanned = Bukkit.getBanList(BanList.Type.PROFILE).isBanned(Bukkit.createProfile(acc));
+                boolean isBanned = Bukkit.getBanList(BanList.Type.NAME).isBanned(acc);
                 String status = isBanned ? "&c[BANNATO]" : "&a[PULITO]";
                 sender.sendMessage(color("&8» &f" + acc + " " + status));
             }
