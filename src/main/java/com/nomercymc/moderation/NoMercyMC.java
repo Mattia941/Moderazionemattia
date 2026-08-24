@@ -10,6 +10,7 @@ import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
+import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
@@ -20,13 +21,20 @@ import java.util.regex.Pattern;
 public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
     private final Map<String, List<String>> ipHistory = new HashMap<>();
+    private final Map<UUID, String> mutedPlayers = new HashMap<>(); // UUID -> Motivo Mute
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
+        
         Objects.requireNonNull(getCommand("ban")).setExecutor(this);
+        Objects.requireNonNull(getCommand("mute")).setExecutor(this);
+        Objects.requireNonNull(getCommand("warn")).setExecutor(this);
+        Objects.requireNonNull(getCommand("kick")).setExecutor(this);
+        Objects.requireNonNull(getCommand("clearchat")).setExecutor(this);
         Objects.requireNonNull(getCommand("dupeip")).setExecutor(this);
+
         getLogger().info("NoMercyMC attivato con successo su Purpur 1.21.1!");
     }
 
@@ -42,12 +50,23 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
         }
     }
 
+    // Blocco chat per giocatori mutati
+    @EventHandler
+    public void onChat(AsyncPlayerChatEvent event) {
+        Player player = event.getPlayer();
+        if (mutedPlayers.containsKey(player.getUniqueId())) {
+            event.setCancelled(true);
+            String reason = mutedPlayers.get(player.getUniqueId());
+            player.sendMessage(color("&cSei attualmente silenziato per: &e" + reason));
+        }
+    }
+
     @Override
     @SuppressWarnings("deprecation")
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
         // ==========================================
-        // COMANDO /BAN (PERMANENTE O TEMPORANEO)
+        // COMANDO /BAN
         // ==========================================
         if (cmd.getName().equalsIgnoreCase("ban")) {
             if (!sender.hasPermission("nomercy.admin")) {
@@ -57,7 +76,6 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
             if (args.length < 2) {
                 sender.sendMessage(color("&cUso corretto: /ban <giocatore> [tempo] <motivo>"));
-                sender.sendMessage(color("&7Esempi tempo: 1d (1 giorno), 12h (12 ore), 30m (30 min)"));
                 return true;
             }
 
@@ -79,14 +97,9 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 return true;
             }
 
-            StringBuilder reasonBuilder = new StringBuilder();
-            for (int i = reasonStartIndex; i < args.length; i++) {
-                reasonBuilder.append(args[i]).append(" ");
-            }
-            String reason = reasonBuilder.toString().trim();
+            String reason = buildReason(args, reasonStartIndex);
             String executor = sender.getName();
 
-            // BAN UNIVERSALE COMPATIBILE PAPER/PURPUR 1.21
             Bukkit.getBanList(BanList.Type.NAME).addBan(targetName, reason, expiration, executor);
 
             Component banBroadcast = color(
@@ -105,7 +118,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             if (target != null) {
                 Component kickScreen = color(
                     "&c&lNOMERCYMC NETWORK\n\n" +
-                    "&7Sei stato sospeso dal nostro server.\n\n" +
+                    "&7Sei stato bannato dal nostro server.\n\n" +
                     "&f&lINFORMAZIONI SANZIONE\n" +
                     "&8» &fMotivo: &c" + reason + "\n" +
                     "&8» &fSanzionato da: &e" + executor + "\n" +
@@ -119,7 +132,130 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
         }
 
         // ==========================================
-        // COMANDO /DUPEIP
+        // COMANDO /MUTE
+        // ==========================================
+        if (cmd.getName().equalsIgnoreCase("mute")) {
+            if (!sender.hasPermission("nomercy.staff")) {
+                sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
+                return true;
+            }
+
+            if (args.length < 2) {
+                sender.sendMessage(color("&cUso corretto: /mute <giocatore> <motivo>"));
+                return true;
+            }
+
+            Player target = Bukkit.getPlayer(args[0]);
+            if (target == null) {
+                sender.sendMessage(color("&cGiocatore non trovato o offline."));
+                return true;
+            }
+
+            String reason = buildReason(args, 1);
+            mutedPlayers.put(target.getUniqueId(), reason);
+
+            Component muteBroadcast = color(
+                "&c--------------------------------------------------\n" +
+                "&c&lNOMERCYMC &8» &fUn utente è stato silenziato!\n \n" +
+                "&e&lMUTE &8» &fGiocatore: &e" + target.getName() + "\n" +
+                "&e&lMUTE &8» &fSanzionato da: &c" + sender.getName() + "\n" +
+                "&e&lMUTE &8» &fMotivo: &f" + reason + "\n" +
+                "&c--------------------------------------------------"
+            );
+
+            Bukkit.broadcast(muteBroadcast);
+            return true;
+        }
+
+        // ==========================================
+        // COMANDO /WARN
+        // ==========================================
+        if (cmd.getName().equalsIgnoreCase("warn")) {
+            if (!sender.hasPermission("nomercy.staff")) {
+                sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
+                return true;
+            }
+
+            if (args.length < 2) {
+                sender.sendMessage(color("&cUso corretto: /warn <giocatore> <motivo>"));
+                return true;
+            }
+
+            Player target = Bukkit.getPlayer(args[0]);
+            if (target == null) {
+                sender.sendMessage(color("&cGiocatore non trovato o offline."));
+                return true;
+            }
+
+            String reason = buildReason(args, 1);
+
+            Component warnMessage = color(
+                "&c--------------------------------------------------\n" +
+                "&c&lNOMERCYMC &8» &c&lSEI STATO WARNATO!\n" +
+                "&fMotivo: &e" + reason + "\n" +
+                "&fStaffer: &c" + sender.getName() + "\n" +
+                "&c--------------------------------------------------"
+            );
+
+            target.sendMessage(warnMessage);
+            sender.sendMessage(color("&aHai inviato un warn a &e" + target.getName()));
+            return true;
+        }
+
+        // ==========================================
+        // COMANDO /KICK
+        // ==========================================
+        if (cmd.getName().equalsIgnoreCase("kick")) {
+            if (!sender.hasPermission("nomercy.staff")) {
+                sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
+                return true;
+            }
+
+            if (args.length < 2) {
+                sender.sendMessage(color("&cUso corretto: /kick <giocatore> <motivo>"));
+                return true;
+            }
+
+            Player target = Bukkit.getPlayer(args[0]);
+            if (target == null) {
+                sender.sendMessage(color("&cGiocatore non trovato o offline."));
+                return true;
+            }
+
+            String reason = buildReason(args, 1);
+            Component kickMessage = color(
+                "&c&lNOMERCYMC NETWORK\n\n" +
+                "&7Sei stato espulso dal server.\n\n" +
+                "&fMotivo: &c" + reason + "\n" +
+                "&fEspulso da: &e" + sender.getName()
+            );
+
+            target.kick(kickMessage);
+            Bukkit.broadcast(color("&8[&cNoMercyMC&8] &e" + target.getName() + " &fè stato espulso per: &c" + reason));
+            return true;
+        }
+
+        // ==========================================
+        // COMANDO /CLEARCHAT
+        // ==========================================
+        if (cmd.getName().equalsIgnoreCase("clearchat")) {
+            if (!sender.hasPermission("nomercy.staff")) {
+                sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
+                return true;
+            }
+
+            for (int i = 0; i < 100; i++) {
+                Bukkit.broadcast(Component.text(" "));
+            }
+
+            Bukkit.broadcast(color("&c--------------------------------------------------"));
+            Bukkit.broadcast(color("&c&lNOMERCYMC &8» &fLa chat è stata pulita da &e" + sender.getName()));
+            Bukkit.broadcast(color("&c--------------------------------------------------"));
+            return true;
+        }
+
+        // ==========================================
+        // COMANDO /DUPEIP (RILEVA BAN E MUTE)
         // ==========================================
         if (cmd.getName().equalsIgnoreCase("dupeip")) {
             if (!sender.hasPermission("nomercy.staff")) {
@@ -146,7 +282,16 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
             for (String acc : accounts) {
                 boolean isBanned = Bukkit.getBanList(BanList.Type.NAME).isBanned(acc);
-                String status = isBanned ? "&c[BANNATO]" : "&a[PULITO]";
+                Player pAcc = Bukkit.getPlayer(acc);
+                boolean isMuted = pAcc != null && mutedPlayers.containsKey(pAcc.getUniqueId());
+
+                String status = "&a[PULITO]";
+                if (isBanned) {
+                    status = "&c[BANNATO]";
+                } else if (isMuted) {
+                    status = "&e[MUTATO]";
+                }
+
                 sender.sendMessage(color("&8» &f" + acc + " " + status));
             }
 
@@ -155,6 +300,14 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
         }
 
         return false;
+    }
+
+    private String buildReason(String[] args, int startIndex) {
+        StringBuilder sb = new StringBuilder();
+        for (int i = startIndex; i < args.length; i++) {
+            sb.append(args[i]).append(" ");
+        }
+        return sb.toString().trim();
     }
 
     private long parseTime(String input) {
