@@ -50,7 +50,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
         }
 
-        getLogger().info("NoMercyMC Sistema di Moderazione Caricato!");
+        getLogger().info("NukeMC Sistema di Moderazione Caricato!");
     }
 
     @EventHandler
@@ -80,11 +80,11 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
             event.setCancelled(true);
             String timeStr = data.expiration == null ? "Permanente" : "Temporaneo";
-            player.sendMessage(color("&c--------------------------------------------------\n" +
-                    "&c&lNOMERCYMC &8» &cSei attualmente silenziato!\n" +
+            player.sendMessage(color("&2--------------------------------------------------\n" +
+                    "&a&lNUKE&2&lMC &8» &cSei attualmente silenziato!\n" +
                     "&fMotivo: &e" + data.reason + "\n" +
                     "&fDurata: &e" + timeStr + "\n" +
-                    "&c--------------------------------------------------"));
+                    "&2--------------------------------------------------"));
         }
     }
 
@@ -103,7 +103,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (args.length < 2) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /" + commandName + " <giocatore/IP> [tempo] <motivo>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /" + commandName + " <giocatore/IP> [tempo] <motivo>"));
                 return true;
             }
 
@@ -112,7 +112,6 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             long durationMillis = -1;
             int reasonStartIndex = 1;
 
-            // Se il comando è esplicitamente tempban/tempipban o se il secondo parametro è un tempo
             if (commandName.startsWith("temp") || parseTime(args[1]) > 0) {
                 durationMillis = parseTime(args[1]);
                 if (durationMillis > 0) {
@@ -121,7 +120,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (reasonStartIndex >= args.length) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cDevi specificare un motivo per la sanzione!"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cDevi specificare un motivo per la sanzione!"));
                 return true;
             }
 
@@ -142,31 +141,31 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
             // Annuncio Globale
             Component banBroadcast = color(
-                "&c--------------------------------------------------\n" +
-                "&c&lNOMERCYMC &8» &fUn utente è stato sanzionato!\n \n" +
+                "&2--------------------------------------------------\n" +
+                "&a&lNUKE&2&lMC &8» &fUn utente è stato sanzionato!\n \n" +
                 "&c&lBAN &8» &fGiocatore: &e" + targetName + "\n" +
                 "&c&lBAN &8» &fSanzionato da: &c" + executor + "\n" +
                 "&c&lBAN &8» &fMotivo: &f" + reason + "\n" +
                 "&c&lBAN &8» &fDurata: &e" + durationString + "\n" +
-                "&c--------------------------------------------------"
+                "&2--------------------------------------------------"
             );
             Bukkit.broadcast(banBroadcast);
 
             // Staff Alert
-            notifyStaff("&c&lSTAFF ALERT &8» &e" + executor + " &fha bannato &c" + targetName + " &f(&e" + durationString + "&f) per: &c" + reason);
+            notifyStaff("&a&lSTAFF ALERT &8» &e" + executor + " &fha bannato &c" + targetName + " &f(&e" + durationString + "&f) per: &c" + reason);
 
             // Kick
             Player target = Bukkit.getPlayer(targetName);
             if (target != null) {
                 Component kickScreen = color(
-                    "&c&lNOMERCYMC NETWORK\n\n" +
+                    "&a&lNUKE&2&lMC NETWORK\n\n" +
                     "&7Sei stato bannato dal nostro server.\n\n" +
                     "&f&lINFORMAZIONI SANZIONE\n" +
                     "&8» &fMotivo: &c" + reason + "\n" +
                     "&8» &fSanzionato da: &e" + executor + "\n" +
                     "&8» &fScadenza: &e" + durationString + "\n\n" +
                     "&7Se ritieni che sia un errore, fai ricorso su:\n" +
-                    "&c&ndiscord.gg/nomercymc"
+                    "&a&ndiscord.gg/nukemc"
                 );
                 target.kick(kickScreen);
             }
@@ -182,7 +181,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 return true;
             }
             if (args.length < 1) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /unban <giocatore/IP>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /unban <giocatore/IP>"));
                 return true;
             }
 
@@ -190,7 +189,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             Bukkit.getBanList(BanList.Type.IP).pardon(args[0]);
             
             sender.sendMessage(color("&aGiocatore/IP " + args[0] + " sbannato con successo!"));
-            notifyStaff("&c&lSTAFF ALERT &8» &e" + sender.getName() + " &fha sbannato &a" + args[0]);
+            notifyStaff("&a&lSTAFF ALERT &8» &e" + sender.getName() + " &fha sbannato &a" + args[0]);
             return true;
         }
 
@@ -204,7 +203,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (args.length < 2) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /" + commandName + " <giocatore> [tempo] <motivo>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /" + commandName + " <giocatore> [tempo] <motivo>"));
                 return true;
             }
 
@@ -226,7 +225,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (reasonStartIndex >= args.length) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cDevi specificare un motivo per il mute!"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cDevi specificare un motivo per il mute!"));
                 return true;
             }
 
@@ -234,16 +233,16 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             mutedPlayers.put(target.getUniqueId(), new MuteData(reason, expiration));
 
             Component muteBroadcast = color(
-                "&c--------------------------------------------------\n" +
-                "&c&lNOMERCYMC &8» &fUn utente è stato silenziato!\n \n" +
+                "&2--------------------------------------------------\n" +
+                "&a&lNUKE&2&lMC &8» &fUn utente è stato silenziato!\n \n" +
                 "&e&lMUTE &8» &fGiocatore: &e" + target.getName() + "\n" +
                 "&e&lMUTE &8» &fSanzionato da: &c" + sender.getName() + "\n" +
                 "&e&lMUTE &8» &fMotivo: &f" + reason + "\n" +
                 "&e&lMUTE &8» &fDurata: &e" + durationString + "\n" +
-                "&c--------------------------------------------------"
+                "&2--------------------------------------------------"
             );
             Bukkit.broadcast(muteBroadcast);
-            notifyStaff("&c&lSTAFF ALERT &8» &e" + sender.getName() + " &fha mutato &e" + target.getName() + " &f(&e" + durationString + "&f) per: &c" + reason);
+            notifyStaff("&a&lSTAFF ALERT &8» &e" + sender.getName() + " &fha mutato &e" + target.getName() + " &f(&e" + durationString + "&f) per: &c" + reason);
             return true;
         }
 
@@ -256,7 +255,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 return true;
             }
             if (args.length < 1) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /unmute <giocatore>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /unmute <giocatore>"));
                 return true;
             }
 
@@ -264,7 +263,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             if (target != null && mutedPlayers.containsKey(target.getUniqueId())) {
                 mutedPlayers.remove(target.getUniqueId());
                 sender.sendMessage(color("&aGiocatore " + target.getName() + " smutato con successo."));
-                notifyStaff("&c&lSTAFF ALERT &8» &e" + sender.getName() + " &fha smutato &a" + target.getName());
+                notifyStaff("&a&lSTAFF ALERT &8» &e" + sender.getName() + " &fha smutato &a" + target.getName());
             } else {
                 sender.sendMessage(color("&cGiocatore non trovato nei mute attivi."));
             }
@@ -281,7 +280,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (args.length < 2) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /warn <giocatore> <motivo>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /warn <giocatore> <motivo>"));
                 return true;
             }
 
@@ -296,16 +295,16 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             warnMap.put(target.getUniqueId(), currentWarns);
 
             Component warnMessage = color(
-                "&c--------------------------------------------------\n" +
-                "&c&lNOMERCYMC &8» &c&lSEI STATO WARNATO! (" + currentWarns + "/3)\n" +
+                "&2--------------------------------------------------\n" +
+                "&a&lNUKE&2&lMC &8» &c&lSEI STATO WARNATO! (" + currentWarns + "/3)\n" +
                 "&fMotivo: &e" + reason + "\n" +
                 "&fStaffer: &c" + sender.getName() + "\n" +
-                "&c--------------------------------------------------"
+                "&2--------------------------------------------------"
             );
 
             target.sendMessage(warnMessage);
             sender.sendMessage(color("&aHai inviato un warn a &e" + target.getName() + " &7(Warn totali: " + currentWarns + ")"));
-            notifyStaff("&c&lSTAFF ALERT &8» &e" + sender.getName() + " &fha warnato &e" + target.getName() + " &f(Warn #" + currentWarns + ") per: &c" + reason);
+            notifyStaff("&a&lSTAFF ALERT &8» &e" + sender.getName() + " &fha warnato &e" + target.getName() + " &f(Warn #" + currentWarns + ") per: &c" + reason);
             return true;
         }
 
@@ -319,7 +318,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (args.length < 2) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /kick <giocatore> <motivo>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /kick <giocatore> <motivo>"));
                 return true;
             }
 
@@ -331,14 +330,14 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
             String reason = buildReason(args, 1);
             Component kickMessage = color(
-                "&c&lNOMERCYMC NETWORK\n\n" +
+                "&a&lNUKE&2&lMC NETWORK\n\n" +
                 "&7Sei stato espulso dal server.\n\n" +
                 "&fMotivo: &c" + reason + "\n" +
                 "&fEspulso da: &e" + sender.getName()
             );
 
             target.kick(kickMessage);
-            notifyStaff("&c&lSTAFF ALERT &8» &e" + sender.getName() + " &fha espulso &c" + target.getName() + " &fper: &c" + reason);
+            notifyStaff("&a&lSTAFF ALERT &8» &e" + sender.getName() + " &fha espulso &c" + target.getName() + " &fper: &c" + reason);
             return true;
         }
 
@@ -355,9 +354,9 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 Bukkit.broadcast(Component.text(" "));
             }
 
-            Bukkit.broadcast(color("&c--------------------------------------------------"));
-            Bukkit.broadcast(color("&c&lNOMERCYMC &8» &fLa chat è stata pulita da &e" + sender.getName()));
-            Bukkit.broadcast(color("&c--------------------------------------------------"));
+            Bukkit.broadcast(color("&2--------------------------------------------------"));
+            Bukkit.broadcast(color("&a&lNUKE&2&lMC &8» &fLa chat è stata pulita da &e" + sender.getName()));
+            Bukkit.broadcast(color("&2--------------------------------------------------"));
             return true;
         }
 
@@ -371,7 +370,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             }
 
             if (args.length < 1) {
-                sender.sendMessage(color("&c&lNOMERCYMC &8» &cUso: /dupeip <giocatore>"));
+                sender.sendMessage(color("&a&lNUKE&2&lMC &8» &cUso: /dupeip <giocatore>"));
                 return true;
             }
 
@@ -384,8 +383,8 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
             String ip = target.getAddress().getAddress().getHostAddress();
             List<String> accounts = ipHistory.getOrDefault(ip, Collections.singletonList(target.getName()));
 
-            sender.sendMessage(color("&c--------------------------------------------------"));
-            sender.sendMessage(color("&c&lNOMERCYMC &8» &fAccount collegati a &e" + target.getName() + "&f:"));
+            sender.sendMessage(color("&2--------------------------------------------------"));
+            sender.sendMessage(color("&a&lNUKE&2&lMC &8» &fAccount collegati a &e" + target.getName() + "&f:"));
 
             for (String acc : accounts) {
                 boolean isBanned = Bukkit.getBanList(BanList.Type.NAME).isBanned(acc);
@@ -405,7 +404,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 sender.sendMessage(color("&8» &f" + acc + " " + status));
             }
 
-            sender.sendMessage(color("&c--------------------------------------------------"));
+            sender.sendMessage(color("&2--------------------------------------------------"));
             return true;
         }
 
