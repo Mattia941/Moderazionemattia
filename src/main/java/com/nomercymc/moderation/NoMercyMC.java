@@ -265,7 +265,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 break;
             }
             case "check": {
-                boolean isBanned = Bukkit.getBanList(BanList.Type.NAME).isPlayerBanned(target);
+                boolean isBanned = Bukkit.getBanList(BanList.Type.NAME).isBanned(target);
                 boolean isMuted = pTarget != null && mutedPlayers.containsKey(pTarget.getUniqueId());
                 int activeWarns = pTarget != null ? getActiveWarnCount(pTarget.getUniqueId()) : 0;
                 sender.sendMessage(PREFIX + ChatColor.GOLD + "--- Stato " + target + " ---");
