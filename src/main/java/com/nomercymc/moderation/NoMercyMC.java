@@ -143,8 +143,7 @@ public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
                 String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
                 Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, null, sender.getName());
                 addHistory(target, "BAN: " + reason + " (" + sender.getName() + ")");
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Sei stato bannato permanentemente!
-Motivo: " + reason);
+                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Sei stato bannato permanentemente!\nMotivo: " + reason);
                 broadcastToStaff(ChatColor.RED + target + ChatColor.GRAY + " e' stato bannato da " + ChatColor.WHITE + sender.getName() + ChatColor.GRAY + ". Motivo: " + ChatColor.YELLOW + reason);
                 break;
             }
@@ -156,8 +155,7 @@ Motivo: " + reason);
                 Date expire = new Date(System.currentTimeMillis() + millis);
                 Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, expire, sender.getName());
                 addHistory(target, "TEMPBAN (" + args[1] + "): " + reason + " (" + sender.getName() + ")");
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Bannato per " + args[1] + "!
-Motivo: " + reason);
+                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Bannato per " + args[1] + "!\nMotivo: " + reason);
                 broadcastToStaff(ChatColor.RED + target + ChatColor.GRAY + " bannato per " + ChatColor.YELLOW + args[1] + ChatColor.GRAY + " da " + ChatColor.WHITE + sender.getName() + ". Motivo: " + reason);
                 break;
             }
@@ -167,8 +165,7 @@ Motivo: " + reason);
                 if (ip != null) Bukkit.getBanList(BanList.Type.IP).addBan(ip, reason, null, sender.getName());
                 Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, null, sender.getName());
                 addHistory(target, "IPBAN: " + reason + " (" + sender.getName() + ")");
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Il tuo IP e' stato bannato!
-Motivo: " + reason);
+                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Il tuo IP e' stato bannato!\nMotivo: " + reason);
                 broadcastToStaff(ChatColor.DARK_RED + target + " (IP-BAN)" + ChatColor.GRAY + " bannato da " + ChatColor.WHITE + sender.getName());
                 break;
             }
@@ -219,8 +216,7 @@ Motivo: " + reason);
             case "kick": {
                 if (pTarget == null) { sender.sendMessage(PREFIX + ChatColor.RED + "Player non online."); return true; }
                 String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
-                pTarget.kickPlayer(PREFIX + ChatColor.RED + "Sei stato cacciato!
-Motivo: " + reason);
+                pTarget.kickPlayer(PREFIX + ChatColor.RED + "Sei stato cacciato!\nMotivo: " + reason);
                 broadcastToStaff(ChatColor.GOLD + target + ChatColor.GRAY + " e' stato espulso da " + ChatColor.WHITE + sender.getName());
                 break;
             }
