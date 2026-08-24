@@ -1,319 +1,190 @@
-package com.nomercymc.moderation;
+package com.nomercymc.bans;
 
-import org.bukkit.BanList;
+import net.kyori.adventure.text.Component;
+import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
 import org.bukkit.Bukkit;
-import org.bukkit.ChatColor;
+import org.bukkit.BanList;
 import org.bukkit.command.Command;
 import org.bukkit.command.CommandExecutor;
 import org.bukkit.command.CommandSender;
 import org.bukkit.entity.Player;
 import org.bukkit.event.EventHandler;
 import org.bukkit.event.Listener;
-import org.bukkit.event.player.AsyncPlayerChatEvent;
 import org.bukkit.event.player.PlayerJoinEvent;
 import org.bukkit.plugin.java.JavaPlugin;
 
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
 
-public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
+public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor {
 
-    private final String PREFIX = ChatColor.DARK_RED + "[" + ChatColor.RED + "NoMercyMC" + ChatColor.DARK_RED + "] " + ChatColor.RESET;
-    private final String STAFF_PERM = "nomercymc.staff";
-
-    private final Map<UUID, Long> mutedPlayers = new HashMap<>();
-    private final Map<String, Set<String>> ipToPlayersMap = new HashMap<>();
-    private final Map<String, String> playerToIpMap = new HashMap<>();
-    private final Map<String, List<String>> historyMap = new HashMap<>();
-    private final Map<UUID, List<WarnData>> warnMap = new HashMap<>();
-    private boolean globalChatMuted = false;
-
-    public static class WarnData {
-        private final String reason;
-        private final String staff;
-        private final long expireTime; // -1 se permanente
-
-        public WarnData(String reason, String staff, long expireTime) {
-            this.reason = reason;
-            this.staff = staff;
-            this.expireTime = expireTime;
-        }
-
-        public boolean isExpired() {
-            return expireTime != -1 && System.currentTimeMillis() > expireTime;
-        }
-
-        public String getReason() { return reason; }
-        public String getStaff() { return staff; }
-        public long getExpireTime() { return expireTime; }
-    }
+    private final Map<String, List<String>> ipHistory = new HashMap<>();
+    private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
 
     @Override
     public void onEnable() {
         getServer().getPluginManager().registerEvents(this, this);
-        String[] cmds = {
-            "ban", "tempban", "ipban", "tempipban", "unban", 
-            "mute", "tempmute", "unmute", "kick", "warn", "tempwarn",
-            "unwarn", "check", "history", "dupeip", "clearchat", "mutechat"
-        };
-        for (String cmd : cmds) {
-            if (getCommand(cmd) != null) getCommand(cmd).setExecutor(this);
-        }
-        getLogger().info("NoMercyMC v1.21.11 di mattia attivato con successo!");
-    }
-
-    private void broadcastToStaff(String message) {
-        String fullMsg = PREFIX + ChatColor.GRAY + "[STAFF] " + message;
-        Bukkit.getConsoleSender().sendMessage(fullMsg);
-        for (Player p : Bukkit.getOnlinePlayers()) {
-            if (p.hasPermission(STAFF_PERM)) {
-                p.sendMessage(fullMsg);
-            }
-        }
-    }
-
-    private int getActiveWarnCount(UUID uuid) {
-        List<WarnData> warns = warnMap.get(uuid);
-        if (warns == null) return 0;
-        int count = 0;
-        for (WarnData w : warns) {
-            if (!w.isExpired()) count++;
-        }
-        return count;
+        Objects.requireNonNull(getCommand("ban")).setExecutor(this);
+        Objects.requireNonNull(getCommand("dupeip")).setExecutor(this);
+        getLogger().info("NoMercyBans attivato per Purpur 1.21.1!");
     }
 
     @EventHandler
-    public void onJoin(PlayerJoinEvent e) {
-        Player p = e.getPlayer();
-        if (p.getAddress() != null) {
-            String ip = p.getAddress().getAddress().getHostAddress();
-            playerToIpMap.put(p.getName().toLowerCase(), ip);
-            ipToPlayersMap.computeIfAbsent(ip, k -> new HashSet<>()).add(p.getName());
-        }
-    }
-
-    @EventHandler
-    public void onChat(AsyncPlayerChatEvent e) {
-        Player p = e.getPlayer();
-        
-        if (globalChatMuted && !p.hasPermission(STAFF_PERM)) {
-            e.setCancelled(true);
-            p.sendMessage(PREFIX + ChatColor.RED + "La chat globale e' attualmente silenziata dallo staff.");
-            return;
-        }
-
-        UUID uuid = p.getUniqueId();
-        if (mutedPlayers.containsKey(uuid)) {
-            long expire = mutedPlayers.get(uuid);
-            if (expire != -1 && System.currentTimeMillis() > expire) {
-                mutedPlayers.remove(uuid);
-                return;
+    public void onJoin(PlayerJoinEvent event) {
+        Player player = event.getPlayer();
+        if (player.getAddress() != null) {
+            String ip = player.getAddress().getAddress().getHostAddress();
+            ipHistory.putIfAbsent(ip, new ArrayList<>());
+            if (!ipHistory.get(ip).contains(player.getName())) {
+                ipHistory.get(ip).add(player.getName());
             }
-            e.setCancelled(true);
-            String dur = expire == -1 ? "permanente" : "ancora " + formatTime((expire - System.currentTimeMillis()) / 1000);
-            p.sendMessage(PREFIX + ChatColor.RED + "Sei silenziato (" + dur + ")!");
         }
     }
 
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
-        String cName = cmd.getName().toLowerCase();
 
-        // Comandi per gestione chat
-        if (cName.equals("clearchat")) {
-            for (int i = 0; i < 100; i++) Bukkit.broadcastMessage("");
-            Bukkit.broadcastMessage(PREFIX + ChatColor.YELLOW + "La chat e' stata pulita da " + ChatColor.WHITE + sender.getName());
+        // ==========================================
+        // COMANDO /BAN (PERMANENTE O TEMPORANEO)
+        // ==========================================
+        if (cmd.getName().equalsIgnoreCase("ban")) {
+            if (!sender.hasPermission("nomercy.admin")) {
+                sender.sendMessage(color("&cNon hai il permesso per eseguire questo comando."));
+                return true;
+            }
+
+            if (args.length < 2) {
+                sender.sendMessage(color("&cUso corretto: /ban <giocatore> [tempo] <motivo>"));
+                sender.sendMessage(color("&7Esempi tempo: 1d (1 giorno), 12h (12 ore), 30m (30 min)"));
+                return true;
+            }
+
+            String targetName = args[0];
+            long durationMillis = parseTime(args[1]);
+
+            Date expiration = null;
+            String durationString = "Permanente";
+            int reasonStartIndex = 1;
+
+            if (durationMillis > 0) {
+                expiration = new Date(System.currentTimeMillis() + durationMillis);
+                durationString = args[1];
+                reasonStartIndex = 2;
+            }
+
+            if (reasonStartIndex >= args.length) {
+                sender.sendMessage(color("&cDevi specificare un motivo per il ban!"));
+                return true;
+            }
+
+            StringBuilder reasonBuilder = new StringBuilder();
+            for (int i = reasonStartIndex; i < args.length; i++) {
+                reasonBuilder.append(args[i]).append(" ");
+            }
+            String reason = reasonBuilder.toString().trim();
+            String executor = sender.getName();
+
+            // API 1.21: Usa BanList.Type.PROFILE anziché NAME
+            Bukkit.getBanList(BanList.Type.PROFILE).addBan(
+                    Bukkit.createProfile(targetName),
+                    reason,
+                    expiration,
+                    executor
+            );
+
+            // Annuncio broadcast CoralMC con Adventure API
+            Component banBroadcast = color(
+                "&c--------------------------------------------------\n" +
+                "&c&lNOMERCYMC &8» &fUn utente è stato sanzionato!\n \n" +
+                "&c&lBAN &8» &fGiocatore: &e" + targetName + "\n" +
+                "&c&lBAN &8» &fSanzionato da: &c" + executor + "\n" +
+                "&c&lBAN &8» &fMotivo: &f" + reason + "\n" +
+                "&c&lBAN &8» &fDurata: &e" + durationString + "\n" +
+                "&c--------------------------------------------------"
+            );
+
+            Bukkit.broadcast(banBroadcast);
+
+            // Disconnessione utente se online
+            Player target = Bukkit.getPlayer(targetName);
+            if (target != null) {
+                Component kickScreen = color(
+                    "&c&lNOMERCYMC NETWORK\n\n" +
+                    "&7Sei stato sospeso dal nostro server.\n\n" +
+                    "&f&lINFORMAZIONI SANZIONE\n" +
+                    "&8» &fMotivo: &c" + reason + "\n" +
+                    "&8» &fSanzionato da: &e" + executor + "\n" +
+                    "&8» &fScadenza: &e" + durationString + "\n\n" +
+                    "&7Se ritieni che sia un errore, fai ricorso su:\n" +
+                    "&c&ndiscord.gg/nomercymc"
+                );
+                target.kick(kickScreen);
+            }
             return true;
         }
-        if (cName.equals("mutechat")) {
-            globalChatMuted = !globalChatMuted;
-            Bukkit.broadcastMessage(PREFIX + ChatColor.YELLOW + "La chat globale e' stata " + (globalChatMuted ? ChatColor.RED + "SILENZIATA" : ChatColor.GREEN + "RIATTIVATA") + ChatColor.YELLOW + " da " + ChatColor.WHITE + sender.getName());
+
+        // ==========================================
+        // COMANDO /DUPEIP
+        // ==========================================
+        if (cmd.getName().equalsIgnoreCase("dupeip")) {
+            if (!sender.hasPermission("nomercy.staff")) {
+                sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
+                return true;
+            }
+
+            if (args.length < 1) {
+                sender.sendMessage(color("&cUso corretto: /dupeip <giocatore>"));
+                return true;
+            }
+
+            Player target = Bukkit.getPlayer(args[0]);
+            if (target == null || target.getAddress() == null) {
+                sender.sendMessage(color("&cGiocatore non trovato o offline."));
+                return true;
+            }
+
+            String ip = target.getAddress().getAddress().getHostAddress();
+            List<String> accounts = ipHistory.getOrDefault(ip, Collections.singletonList(target.getName()));
+
+            sender.sendMessage(color("&c--------------------------------------------------"));
+            sender.sendMessage(color("&c&lNOMERCYMC &8» &fAccount collegati a &e" + target.getName() + "&f:"));
+
+            for (String acc : accounts) {
+                boolean isBanned = Bukkit.getBanList(BanList.Type.PROFILE).isBanned(Bukkit.createProfile(acc));
+                String status = isBanned ? "&c[BANNATO]" : "&a[PULITO]";
+                sender.sendMessage(color("&8» &f" + acc + " " + status));
+            }
+
+            sender.sendMessage(color("&c--------------------------------------------------"));
             return true;
         }
 
-        if (args.length < 1) {
-            sender.sendMessage(PREFIX + ChatColor.RED + "Uso: /" + label + " <giocatore> [tempo/motivo]");
-            return true;
-        }
-
-        String target = args[0];
-        Player pTarget = Bukkit.getPlayer(target);
-
-        switch (cName) {
-            case "ban": {
-                String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
-                Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, null, sender.getName());
-                addHistory(target, "BAN: " + reason + " (" + sender.getName() + ")");
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Sei stato bannato permanentemente!\nMotivo: " + reason);
-                broadcastToStaff(ChatColor.RED + target + ChatColor.GRAY + " e' stato bannato da " + ChatColor.WHITE + sender.getName() + ChatColor.GRAY + ". Motivo: " + ChatColor.YELLOW + reason);
-                break;
-            }
-            case "tempban": {
-                if (args.length < 2) { sender.sendMessage(PREFIX + ChatColor.RED + "Uso: /tempban <player> <tempo> [motivo]"); return true; }
-                long millis = parseTime(args[1]);
-                if (millis <= 0) { sender.sendMessage(PREFIX + ChatColor.RED + "Formato tempo errato (es. 1d, 12h, 30m)"); return true; }
-                String reason = args.length > 2 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : "Nessun motivo";
-                Date expire = new Date(System.currentTimeMillis() + millis);
-                Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, expire, sender.getName());
-                addHistory(target, "TEMPBAN (" + args[1] + "): " + reason + " (" + sender.getName() + ")");
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Bannato per " + args[1] + "!\nMotivo: " + reason);
-                broadcastToStaff(ChatColor.RED + target + ChatColor.GRAY + " bannato per " + ChatColor.YELLOW + args[1] + ChatColor.GRAY + " da " + ChatColor.WHITE + sender.getName() + ". Motivo: " + reason);
-                break;
-            }
-            case "ipban": {
-                String ip = pTarget != null && pTarget.getAddress() != null ? pTarget.getAddress().getAddress().getHostAddress() : playerToIpMap.get(target.toLowerCase());
-                String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
-                if (ip != null) Bukkit.getBanList(BanList.Type.IP).addBan(ip, reason, null, sender.getName());
-                Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, null, sender.getName());
-                addHistory(target, "IPBAN: " + reason + " (" + sender.getName() + ")");
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "Il tuo IP e' stato bannato!\nMotivo: " + reason);
-                broadcastToStaff(ChatColor.DARK_RED + target + " (IP-BAN)" + ChatColor.GRAY + " bannato da " + ChatColor.WHITE + sender.getName());
-                break;
-            }
-            case "tempipban": {
-                if (args.length < 2) { sender.sendMessage(PREFIX + ChatColor.RED + "Uso: /tempipban <player> <tempo> [motivo]"); return true; }
-                long millis = parseTime(args[1]);
-                if (millis <= 0) { sender.sendMessage(PREFIX + ChatColor.RED + "Tempo non valido."); return true; }
-                String ip = pTarget != null && pTarget.getAddress() != null ? pTarget.getAddress().getAddress().getHostAddress() : playerToIpMap.get(target.toLowerCase());
-                String reason = args.length > 2 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : "Nessun motivo";
-                Date expire = new Date(System.currentTimeMillis() + millis);
-                if (ip != null) Bukkit.getBanList(BanList.Type.IP).addBan(ip, reason, expire, sender.getName());
-                Bukkit.getBanList(BanList.Type.NAME).addBan(target, reason, expire, sender.getName());
-                addHistory(target, "TEMPIPBAN (" + args[1] + "): " + reason);
-                if (pTarget != null) pTarget.kickPlayer(PREFIX + ChatColor.RED + "IP Bannato per " + args[1] + "!");
-                broadcastToStaff(ChatColor.DARK_RED + target + " (TEMP-IPBAN " + args[1] + ")" + ChatColor.GRAY + " da " + ChatColor.WHITE + sender.getName());
-                break;
-            }
-            case "unban": {
-                Bukkit.getBanList(BanList.Type.NAME).pardon(target);
-                String ip = playerToIpMap.get(target.toLowerCase());
-                if (ip != null) Bukkit.getBanList(BanList.Type.IP).pardon(ip);
-                broadcastToStaff(ChatColor.GREEN + target + ChatColor.GRAY + " e' stato sbannato da " + ChatColor.WHITE + sender.getName());
-                break;
-            }
-            case "mute": {
-                if (pTarget == null) { sender.sendMessage(PREFIX + ChatColor.RED + "Player non online."); return true; }
-                String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
-                mutedPlayers.put(pTarget.getUniqueId(), -1L);
-                addHistory(target, "MUTE: " + reason);
-                broadcastToStaff(ChatColor.YELLOW + target + ChatColor.GRAY + " e' stato silenziato da " + ChatColor.WHITE + sender.getName());
-                break;
-            }
-            case "tempmute": {
-                if (pTarget == null || args.length < 2) { sender.sendMessage(PREFIX + ChatColor.RED + "Uso: /tempmute <player> <tempo> [motivo]"); return true; }
-                long millis = parseTime(args[1]);
-                if (millis <= 0) { sender.sendMessage(PREFIX + ChatColor.RED + "Tempo non valido."); return true; }
-                String reason = args.length > 2 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : "Nessun motivo";
-                mutedPlayers.put(pTarget.getUniqueId(), System.currentTimeMillis() + millis);
-                addHistory(target, "TEMPMUTE (" + args[1] + "): " + reason);
-                broadcastToStaff(ChatColor.YELLOW + target + ChatColor.GRAY + " silenziato per " + args[1] + " da " + ChatColor.WHITE + sender.getName());
-                break;
-            }
-            case "unmute": {
-                if (pTarget != null) mutedPlayers.remove(pTarget.getUniqueId());
-                broadcastToStaff(ChatColor.GREEN + target + ChatColor.GRAY + " non e' piu' silenziato.");
-                break;
-            }
-            case "kick": {
-                if (pTarget == null) { sender.sendMessage(PREFIX + ChatColor.RED + "Player non online."); return true; }
-                String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
-                pTarget.kickPlayer(PREFIX + ChatColor.RED + "Sei stato cacciato!\nMotivo: " + reason);
-                broadcastToStaff(ChatColor.GOLD + target + ChatColor.GRAY + " e' stato espulso da " + ChatColor.WHITE + sender.getName());
-                break;
-            }
-            case "warn": {
-                if (pTarget == null) { sender.sendMessage(PREFIX + ChatColor.RED + "Player non online."); return true; }
-                String reason = args.length > 1 ? String.join(" ", Arrays.copyOfRange(args, 1, args.length)) : "Nessun motivo";
-                warnMap.computeIfAbsent(pTarget.getUniqueId(), k -> new ArrayList<>()).add(new WarnData(reason, sender.getName(), -1L));
-                int totalActive = getActiveWarnCount(pTarget.getUniqueId());
-                addHistory(target, "WARN (#" + totalActive + "): " + reason);
-                pTarget.sendMessage(PREFIX + ChatColor.RED + "Hai ricevuto un WARN (" + totalActive + "): " + ChatColor.YELLOW + reason);
-                broadcastToStaff(ChatColor.GOLD + target + ChatColor.GRAY + " ha ricevuto un warn da " + ChatColor.WHITE + sender.getName() + ChatColor.GRAY + " (Totale attivi: " + totalActive + ")");
-                break;
-            }
-            case "tempwarn": {
-                if (pTarget == null || args.length < 2) { sender.sendMessage(PREFIX + ChatColor.RED + "Uso: /tempwarn <player> <tempo> [motivo]"); return true; }
-                long millis = parseTime(args[1]);
-                if (millis <= 0) { sender.sendMessage(PREFIX + ChatColor.RED + "Tempo non valido (es. 1d, 12h, 30m)."); return true; }
-                String reason = args.length > 2 ? String.join(" ", Arrays.copyOfRange(args, 2, args.length)) : "Nessun motivo";
-                long expire = System.currentTimeMillis() + millis;
-                warnMap.computeIfAbsent(pTarget.getUniqueId(), k -> new ArrayList<>()).add(new WarnData(reason, sender.getName(), expire));
-                int totalActive = getActiveWarnCount(pTarget.getUniqueId());
-                addHistory(target, "TEMPWARN (" + args[1] + "): " + reason);
-                pTarget.sendMessage(PREFIX + ChatColor.RED + "Hai ricevuto un TEMPWARN (" + args[1] + "): " + ChatColor.YELLOW + reason);
-                broadcastToStaff(ChatColor.GOLD + target + ChatColor.GRAY + " ha ricevuto un tempwarn (" + args[1] + ") da " + ChatColor.WHITE + sender.getName() + ChatColor.GRAY + " (Totale attivi: " + totalActive + ")");
-                break;
-            }
-            case "unwarn": {
-                if (pTarget == null) { sender.sendMessage(PREFIX + ChatColor.RED + "Player non online."); return true; }
-                List<WarnData> warns = warnMap.get(pTarget.getUniqueId());
-                boolean removed = false;
-                if (warns != null && !warns.isEmpty()) {
-                    for (int i = warns.size() - 1; i >= 0; i--) {
-                        if (!warns.get(i).isExpired()) {
-                            warns.remove(i);
-                            removed = true;
-                            break;
-                        }
-                    }
-                }
-                if (removed) {
-                    int totalActive = getActiveWarnCount(pTarget.getUniqueId());
-                    broadcastToStaff(ChatColor.GREEN + "Rimosso un warn a " + target + ". Warn attivi rimanenti: " + totalActive);
-                } else {
-                    sender.sendMessage(PREFIX + ChatColor.RED + target + " non ha warn attivi da rimuovere.");
-                }
-                break;
-            }
-            case "check": {
-                boolean isBanned = Bukkit.getBanList(BanList.Type.NAME).isBanned(target);
-                boolean isMuted = pTarget != null && mutedPlayers.containsKey(pTarget.getUniqueId());
-                int activeWarns = pTarget != null ? getActiveWarnCount(pTarget.getUniqueId()) : 0;
-                sender.sendMessage(PREFIX + ChatColor.GOLD + "--- Stato " + target + " ---");
-                sender.sendMessage(ChatColor.GRAY + "Bannato: " + (isBanned ? ChatColor.RED + "Si" : ChatColor.GREEN + "No"));
-                sender.sendMessage(ChatColor.GRAY + "Silenziato: " + (isMuted ? ChatColor.RED + "Si" : ChatColor.GREEN + "No"));
-                sender.sendMessage(ChatColor.GRAY + "Warn Attivi: " + ChatColor.YELLOW + activeWarns);
-                break;
-            }
-            case "history": {
-                List<String> hist = historyMap.getOrDefault(target.toLowerCase(), Collections.emptyList());
-                sender.sendMessage(PREFIX + ChatColor.GOLD + "Storico per " + target + ":");
-                if (hist.isEmpty()) sender.sendMessage(ChatColor.GRAY + "Nessun record.");
-                else hist.forEach(e -> sender.sendMessage(ChatColor.GRAY + "- " + ChatColor.YELLOW + e));
-                break;
-            }
-            case "dupeip": {
-                String ip = pTarget != null && pTarget.getAddress() != null ? pTarget.getAddress().getAddress().getHostAddress() : playerToIpMap.get(target.toLowerCase());
-                if (ip == null) { sender.sendMessage(PREFIX + ChatColor.RED + "IP sconosciuto."); return true; }
-                sender.sendMessage(PREFIX + ChatColor.GOLD + "Account su " + ip + ": " + ChatColor.WHITE + String.join(", ", ipToPlayersMap.getOrDefault(ip, new HashSet<>())));
-                break;
-            }
-        }
-        return true;
-    }
-
-    private void addHistory(String player, String entry) {
-        historyMap.computeIfAbsent(player.toLowerCase(), k -> new ArrayList<>()).add(entry);
+        return false;
     }
 
     private long parseTime(String input) {
-        try {
-            char unit = input.charAt(input.length() - 1);
-            long val = Long.parseLong(input.substring(0, input.length() - 1));
-            return switch (unit) {
-                case 's' -> val * 1000;
-                case 'm' -> val * 60 * 1000;
-                case 'h' -> val * 3600 * 1000;
-                case 'd' -> val * 86400 * 1000;
-                default -> -1;
-            };
-        } catch (Exception e) { return -1; }
+        Pattern pattern = Pattern.compile("^(\\d+)([smhd])$");
+        Matcher matcher = pattern.matcher(input.toLowerCase());
+
+        if (!matcher.matches()) {
+            return -1;
+        }
+
+        long value = Long.parseLong(matcher.group(1));
+        String unit = matcher.group(2);
+
+        return switch (unit) {
+            case "s" -> value * 1000L;
+            case "m" -> value * 1000L * 60;
+            case "h" -> value * 1000L * 60 * 60;
+            case "d" -> value * 1000L * 60 * 60 * 24;
+            default -> -1;
+        };
     }
 
-    private String formatTime(long seconds) {
-        long d = seconds / 86400, h = (seconds % 86400) / 3600, m = (seconds % 3600) / 60, s = seconds % 60;
-        if (d > 0) return d + "d " + h + "h";
-        if (h > 0) return h + "h " + m + "m";
-        if (m > 0) return m + "m " + s + "s";
-        return s + "s";
+    // Helper per convertire i codici colore legacy in Adventure Component (1.21+)
+    private Component color(String text) {
+        return LEGACY.deserialize(text);
     }
-}
+}w
