@@ -1,4 +1,4 @@
-package com.nomercymc.bans;
+package com.nomercymc.moderation;
 
 import net.kyori.adventure.text.Component;
 import net.kyori.adventure.text.serializer.legacy.LegacyComponentSerializer;
@@ -17,7 +17,7 @@ import java.util.*;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 
-public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor {
+public class NoMercyMC extends JavaPlugin implements Listener, CommandExecutor {
 
     private final Map<String, List<String>> ipHistory = new HashMap<>();
     private static final LegacyComponentSerializer LEGACY = LegacyComponentSerializer.legacyAmpersand();
@@ -27,7 +27,7 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
         getServer().getPluginManager().registerEvents(this, this);
         Objects.requireNonNull(getCommand("ban")).setExecutor(this);
         Objects.requireNonNull(getCommand("dupeip")).setExecutor(this);
-        getLogger().info("NoMercyBans attivato per Purpur 1.21.1!");
+        getLogger().info("NoMercyMC attivato con successo!");
     }
 
     @EventHandler
@@ -45,9 +45,7 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
     @Override
     public boolean onCommand(CommandSender sender, Command cmd, String label, String[] args) {
 
-        // ==========================================
-        // COMANDO /BAN (PERMANENTE O TEMPORANEO)
-        // ==========================================
+        // COMANDO /BAN
         if (cmd.getName().equalsIgnoreCase("ban")) {
             if (!sender.hasPermission("nomercy.admin")) {
                 sender.sendMessage(color("&cNon hai il permesso per eseguire questo comando."));
@@ -85,7 +83,6 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
             String reason = reasonBuilder.toString().trim();
             String executor = sender.getName();
 
-            // API 1.21: Usa BanList.Type.PROFILE anziché NAME
             Bukkit.getBanList(BanList.Type.PROFILE).addBan(
                     Bukkit.createProfile(targetName),
                     reason,
@@ -93,7 +90,6 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
                     executor
             );
 
-            // Annuncio broadcast CoralMC con Adventure API
             Component banBroadcast = color(
                 "&c--------------------------------------------------\n" +
                 "&c&lNOMERCYMC &8» &fUn utente è stato sanzionato!\n \n" +
@@ -106,7 +102,6 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
 
             Bukkit.broadcast(banBroadcast);
 
-            // Disconnessione utente se online
             Player target = Bukkit.getPlayer(targetName);
             if (target != null) {
                 Component kickScreen = color(
@@ -124,9 +119,7 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
             return true;
         }
 
-        // ==========================================
         // COMANDO /DUPEIP
-        // ==========================================
         if (cmd.getName().equalsIgnoreCase("dupeip")) {
             if (!sender.hasPermission("nomercy.staff")) {
                 sender.sendMessage(color("&cNon hai il permesso per usare questo comando."));
@@ -183,8 +176,7 @@ public class NoMercyBans extends JavaPlugin implements Listener, CommandExecutor
         };
     }
 
-    // Helper per convertire i codici colore legacy in Adventure Component (1.21+)
     private Component color(String text) {
         return LEGACY.deserialize(text);
     }
-}w
+}
