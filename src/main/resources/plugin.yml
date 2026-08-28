@@ -1,30 +1,30 @@
-name: NoMercyMC
+name: AternixMC
 version: 1.21.11
-main: com.nomercymc.moderation.NoMercyMC
+main: com.aternixmc.moderation.AternixMC
 api-version: '1.21'
-author: mattia
-description: Sistema avanzato di moderazione NoMercyMC (LiteBans/AdvancedBan style).
+author: Mattia Lascaro
+description: Sistema di moderazione 
 
 permissions:
-  nomercymc.staff:
+  aternixmc.staff:
     description: Permette di vedere le notifiche dello staff.
     default: op
 
 commands:
-  ban: { permission: nomercymc.ban }
-  tempban: { permission: nomercymc.tempban }
-  ipban: { permission: nomercymc.ipban }
-  tempipban: { permission: nomercymc.tempipban }
-  unban: { permission: nomercymc.unban }
-  mute: { permission: nomercymc.mute }
-  tempmute: { permission: nomercymc.tempmute }
-  unmute: { permission: nomercymc.unmute }
-  kick: { permission: nomercymc.kick }
-  warn: { permission: nomercymc.warn }
-  tempwarn: { permission: nomercymc.tempwarn }
-  unwarn: { permission: nomercymc.unwarn }
-  check: { permission: nomercymc.check }
-  history: { permission: nomercymc.history }
-  dupeip: { permission: nomercymc.dupeip }
-  clearchat: { permission: nomercymc.clearchat }
-  mutechat: { permission: nomercymc.mutechat }
+  ban: { permission: aternixmc.ban }
+  tempban: { permission: aternixmc.tempban }
+  ipban: { permission: aternixmc.ipban }
+  tempipban: { permission: aternixmc.tempipban }
+  unban: { permission: aternixmc.unban }
+  mute: { permission: aternixmc.mute }
+  tempmute: { permission: aternixmc.tempmute }
+  unmute: { permission: aternixmc.unmute }
+  kick: { permission: aternixmc.kick }
+  warn: { permission: aternixmc.warn }
+  tempwarn: { permission: aternixmc.tempwarn }
+  unwarn: { permission: aternixmc.unwarn }
+  check: { permission: aternixmc.check }
+  history: { permission: aternixmc.history }
+  dupeip: { permission: aternixmc.dupeip }
+  clearchat: { permission: aternixmc.clearchat }
+  mutechat: { permission: aternixmc.mutechat }
