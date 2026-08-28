@@ -1,4 +1,4 @@
-name: Build Plugin
+name: Build Plugin AternixMC
 
 on:
   push:
@@ -23,5 +23,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: NoMercyMC-Plugin
+        name: AternixMC-Plugin
         path: target/*.jar
