@@ -1,16 +1,15 @@
-
-    <project xmlns="http://maven.apache.org/POM/4.0.0"
+<project xmlns="http://maven.apache.org/POM/4.0.0"
          xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
          xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
     <modelVersion>4.0.0</modelVersion>
 
-    <groupId>com.aternixmc</groupId>
-    <artifactId>AternixMC</artifactId>
+    <groupId>com.mythmc</groupId>
+    <artifactId>MythMCModeration</artifactId>
     <version>1.21.1</version>
     <packaging>jar</packaging>
 
-    <name>AternixMC</name>
-    <description>Sistema Di Moderazione.</description>
+    <name>MythMCModeration</name>
+    <description>Sistema Di Moderazione per MythMC.</description>
 
     <properties>
         <java.version>21</java.version>
@@ -34,7 +33,7 @@
     </dependencies>
 
     <build>
-        <finalName>AternixMC</finalName>
+        <finalName>MythMCModeration</finalName>
         <plugins>
             <plugin>
                 <groupId>org.apache.maven.plugins</groupId>
@@ -48,3 +47,4 @@
         </plugins>
     </build>
 </project>
+
