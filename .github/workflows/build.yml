@@ -1,4 +1,4 @@
-name: Build Plugin AternixMC
+name: Build Plugin MythMC
 
 on:
   push:
@@ -23,5 +23,5 @@ jobs:
     - name: Upload Artifact
       uses: actions/upload-artifact@v4
       with:
-        name: AternixMC-Plugin
+        name: MythMCModeration-Plugin
         path: target/*.jar
