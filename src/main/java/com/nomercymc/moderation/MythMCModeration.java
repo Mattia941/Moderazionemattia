@@ -307,7 +307,7 @@ public class MythMCModeration extends JavaPlugin implements Listener, CommandExe
         UUID uuid = player.getUniqueId();
 
         if (mutedPlayers.containsKey(uuid)) {
-            MuraData data = mutedPlayers.get(uuid); // Corretto sotto in MuteData
+            MuteData data = mutedPlayers.get(uuid);
 
             if (data.expiration != null && new Date().after(data.expiration)) {
                 mutedPlayers.remove(uuid);
