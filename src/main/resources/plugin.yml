@@ -1,30 +1,42 @@
-name: AternixMC
-version: 1.21.11
-main: com.aternixmc.moderation.AternixMC
+name: MythMCModeration
+version: 1.21.1
+main: com.mythmc.moderation.MythMCModeration
 api-version: '1.21'
-author: Mattia Lascaro
-description: Sistema di moderazione 
-
-permissions:
-  aternixmc.staff:
-    description: Permette di vedere le notifiche dello staff.
-    default: op
-
+prefix: MythMC
 commands:
-  ban: { permission: aternixmc.ban }
-  tempban: { permission: aternixmc.tempban }
-  ipban: { permission: aternixmc.ipban }
-  tempipban: { permission: aternixmc.tempipban }
-  unban: { permission: aternixmc.unban }
-  mute: { permission: aternixmc.mute }
-  tempmute: { permission: aternixmc.tempmute }
-  unmute: { permission: aternixmc.unmute }
-  kick: { permission: aternixmc.kick }
-  warn: { permission: aternixmc.warn }
-  tempwarn: { permission: aternixmc.tempwarn }
-  unwarn: { permission: aternixmc.unwarn }
-  check: { permission: aternixmc.check }
-  history: { permission: aternixmc.history }
-  dupeip: { permission: aternixmc.dupeip }
-  clearchat: { permission: aternixmc.clearchat }
-  mutechat: { permission: aternixmc.mutechat }
+  ban:
+    description: Banna un giocatore
+    permission: mythmc.ban
+  tempban:
+    description: Banna temporaneamente un giocatore
+    permission: mythmc.tempban
+  ipban:
+    description: Banna un IP
+    permission: mythmc.ipban
+  tempipban:
+    description: Banna temporaneamente un IP
+    permission: mythmc.tempipban
+  unban:
+    description: Sbanna un giocatore
+    permission: mythmc.unban
+  mute:
+    description: Muta un giocatore
+    permission: mythmc.mute
+  tempmute:
+    description: Muta temporaneamente un giocatore
+    permission: mythmc.tempmute
+  unmute:
+    description: Smuta un giocatore
+    permission: mythmc.unmute
+  warn:
+    description: Ammonisci un giocatore
+    permission: mythmc.warn
+  kick:
+    description: Caccia un giocatore
+    permission: mythmc.kick
+  clearchat:
+    description: Pulisci la chat
+    permission: mythmc.clearchat
+  dupeip:
+    description: Controlla IP duplicati
+    permission: mythmc.dupeip
